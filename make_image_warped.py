@@ -174,7 +174,7 @@ class Sequence:
                         img_warp.save(self.save_img_cur_dir / img_filename.name)
 
 if __name__ == "__main__":
-    dataset_dir = Path('/mnt/sdb/datasets/DSEC/train')
+    dataset_dir = Path('./DSEC/train')
 
     # 遍历源目录中的所有子文件夹
     for subfolder in sorted(os.listdir(dataset_dir)):
