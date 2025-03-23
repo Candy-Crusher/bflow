@@ -2,6 +2,7 @@ import math
 from typing import Dict, Tuple
 
 import h5py
+import hdf5plugin
 from numba import jit
 import numpy as np
 

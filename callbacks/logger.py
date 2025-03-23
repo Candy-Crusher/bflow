@@ -37,6 +37,7 @@ class WandBImageLoggingCallback(Callback):
 
     def __init__(self, logging_params: Dict[str, Any], deterministic: bool=True):
         super().__init__()
+        print('WandBImageLoggingCallback.__init__')
         log_every_n_train_steps = logging_params['log_every_n_steps']
         log_n_val_predictions = logging_params['log_n_val_predictions']
         self.log_only_numbers = logging_params['only_numbers']
@@ -228,6 +229,7 @@ class WandBImageLoggingCallback(Callback):
         self._clear_val_data()
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        print('on_validation_batch_end')
         if self.log_only_numbers:
             return
         # NOTE: How to resolve the growing memory issue throughout the validation run?

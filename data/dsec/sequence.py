@@ -43,17 +43,22 @@ class SubSequenceGenerator:
         assert forward_timestamps_file.is_file()
         self.forward_flow_timestamps = np.loadtxt(str(forward_timestamps_file), dtype='int64', delimiter=',')
         assert self.forward_flow_timestamps.ndim == 2
-        assert self.forward_flow_timestamps.shape[1] == 2
+        assert self.forward_flow_timestamps.shape[1] == 3, self.forward_flow_timestamps.shape
 
-        # load forward optical flow paths
-        forward_flow_dir = flow_dir / 'forward'
-        assert forward_flow_dir.is_dir()
-        forward_flow_list = list()
-        for entry in forward_flow_dir.iterdir():
-            assert str(entry.name).endswith('.png')
-            forward_flow_list.append(entry)
-        forward_flow_list.sort()
-        self.forward_flow_list = forward_flow_list
+        if args['mode'] == 'train':
+            # load forward optical flow paths
+            forward_flow_dir = flow_dir / 'forward'
+            assert forward_flow_dir.is_dir(), forward_flow_dir
+            forward_flow_list = list()
+            for entry in forward_flow_dir.iterdir():
+                assert str(entry.name).endswith('.png')
+                forward_flow_list.append(entry)
+            forward_flow_list.sort()
+            self.forward_flow_list = forward_flow_list
+            assert len(forward_flow_list) == self.forward_flow_timestamps.shape[0]
+
+        else:
+            self.forward_flow_list = []
 
         # Extract start indices of sub-sequences
         from_ts = self.forward_flow_timestamps[:, 0]

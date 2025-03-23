@@ -12,6 +12,9 @@ from utils.general import to_cpu
 from utils.losses import l1_seq_loss_channel_masked, l1_multi_seq_loss_channel_masked
 from utils.metrics import EPE, AE, NPE, EPE_MULTI, AE_MULTI, predictions_from_lin_assumption
 
+import numpy
+import os
+import imageio
 
 class RAFTSplineModule(pl.LightningModule):
     def __init__(self, config: Union[Dict[str, Any], DictConfig]):
@@ -190,7 +193,7 @@ class RAFTSplineModule(pl.LightningModule):
     @to_cpu
     def validation_step(self, batch, batch_idx):
         # forward_flow: (N, 2, 480, 640), float32
-        forward_flow_gt = batch[DataLoading.FLOW]
+        forward_flow_gt = batch[DataLoading.FLOW] if DataLoading.FLOW_VALID in batch else None
         # forward_flow_valid: (N, 480, 640), bool
         forward_flow_gt_valid = batch[DataLoading.FLOW_VALID] if DataLoading.FLOW_VALID in batch else None
         # event_representation: (N, 2*num_bins-1, 480, 640), float32
@@ -234,14 +237,31 @@ class RAFTSplineModule(pl.LightningModule):
                 if images is not None:
                     images = [self._input_padder.unpad(x) for x in images]
 
-            val_metrics = self.val_single_metrics(forward_flow_pred, forward_flow_gt, forward_flow_gt_valid)
-            self.log_dict(val_metrics, logger=True, on_epoch=True)
+            # val_metrics = self.val_single_metrics(forward_flow_pred, forward_flow_gt, forward_flow_gt_valid)
+            # self.log_dict(val_metrics, logger=True, on_epoch=True)
 
             output.update({
                 'pred': forward_flow_pred,
-                'gt': forward_flow_gt,
-                'gt_valid': forward_flow_gt_valid,
+                # 'gt': forward_flow_gt,
+                # 'gt_valid': forward_flow_gt_valid,
             })
+
+            # for submission
+            self.submission_path = './submission'
+            flow = forward_flow_pred[0].detach().cpu().numpy()
+            _, h,w = flow.shape
+            flow_map = numpy.rint(flow*128 + 2**15)
+            flow_map = flow_map.astype(numpy.uint16).transpose(1,2,0)
+            flow_map = numpy.concatenate((flow_map, numpy.zeros((h,w,1), dtype=numpy.uint16)), axis=-1)
+            parent_path = os.path.join(
+                self.submission_path,
+                batch[DataLoading.SEQ_NAME][0],
+            )
+            if not os.path.exists(parent_path):
+                os.mkdir(parent_path)
+            file_name = '{:06d}.png'.format(batch[DataLoading.FILE_INDEX][0])
+
+            imageio.imwrite(os.path.join(parent_path, file_name), flow_map, format='PNG-FI')
         elif dataset_type == DataSetType.MULTIFLOW2D:
             nbins_context = batch[DataLoading.BIN_META]['nbins_context'][0]
             nbins_corr = batch[DataLoading.BIN_META]['nbins_correlation'][0]

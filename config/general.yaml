@@ -1,6 +1,6 @@
 training:
   multi_loss: true # ATTENTION: This can only be used for the MultiFlow
-  batch_size: 3
+  batch_size: 12
   max_epochs: 1000
   max_steps: 200000
   learning_rate: 0.0001

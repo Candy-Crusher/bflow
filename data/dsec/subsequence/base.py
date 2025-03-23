@@ -59,11 +59,11 @@ class BaseSubSequence(Dataset):
 
         self.augmentor = FlowAugmentor(crop_size_hw=(288, 384)) if data_augm else None
 
+        self.seq_path = seq_path
+
         # Set event representation
         self.voxel_grid = VoxelGrid(self.num_bins, self.height, self.width)
         self.normalize_voxel_grid: Optional[norm_voxel_grid] = norm_voxel_grid if normalize_voxel_grid else None
-
-        assert len(forward_flow_paths) == forward_flow_timestamps.shape[0]
 
         self.forward_flow_timestamps = forward_flow_timestamps
 
@@ -206,7 +206,7 @@ class BaseSubSequence(Dataset):
         raise NotImplementedError
 
     def _load_voxel_grid(self, ts_from: int, ts_to: int, file_index: int):
-        assert file_index >= 0
+        assert file_index >= 0, f'File index is {file_index}.'
 
         # Assuming we want to load the 'forward' voxel grid.
         voxel_grid_file = self.voxel_grid_dir / (f'{file_index}'.zfill(6) + '.h5')

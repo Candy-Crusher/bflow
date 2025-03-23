@@ -19,7 +19,8 @@ class TwoStepSubSequence(BaseSubSequence):
             load_voxel_grid: bool,
             extended_voxel_grid: bool,
             normalize_voxel_grid: bool,
-            merge_grids: bool):
+            merge_grids: bool,
+            mode: str):
         super().__init__(
             seq_path,
             forward_flow_timestamps,
@@ -30,17 +31,23 @@ class TwoStepSubSequence(BaseSubSequence):
             extended_voxel_grid=extended_voxel_grid,
             normalize_voxel_grid=normalize_voxel_grid)
         self.merge_grids = merge_grids
+        self.mode = mode
 
     def __len__(self):
-        return len(self.forward_flow_list)
+        # return len(self.forward_flow_list)
+        return len(self.forward_flow_timestamps)
 
     def __getitem__(self, index):
-        forward_flow_gt_path = self.forward_flow_list[index]
-        flow_file_index = int(forward_flow_gt_path.stem)
-        forward_flow, forward_flow_valid2D = load_flow(forward_flow_gt_path)
-        # forward_flow: (h, w, 2) -> (2, h, w)
-        forward_flow = np.moveaxis(forward_flow, -1, 0)
-
+        if self.mode == 'train':
+            forward_flow_gt_path = self.forward_flow_list[index]
+            flow_file_index = int(forward_flow_gt_path.stem)
+            forward_flow, forward_flow_valid2D = load_flow(forward_flow_gt_path)
+            # forward_flow: (h, w, 2) -> (2, h, w)
+            forward_flow = np.moveaxis(forward_flow, -1, 0)
+        else:
+            flow_file_index = self.forward_flow_timestamps[index, 2]
+            forward_flow = None
+            forward_flow_valid2D = None
         # Events during the flow duration.
         ev_repr_list = list()
         ts_from = None
@@ -70,7 +77,7 @@ class TwoStepSubSequence(BaseSubSequence):
             # Assume forward flow (target frame in the future)
             img_idx_target = img_idx_reference + 2
             img_target = self._get_ev_left_img(img_idx_target)
-            assert img_target is not None
+            assert img_target is not None, f'{img_idx_target}'
             imgs_list = [img_reference, img_target]
 
         # 0: previous, 1: current
@@ -87,18 +94,19 @@ class TwoStepSubSequence(BaseSubSequence):
             if self.normalize_voxel_grid is not None:
                 ev_repr_list = [self.normalize_voxel_grid(voxel_grid) for voxel_grid in ev_repr_list]
             event_representations = torch.stack(ev_repr_list)
-
         if self.augmentor is not None:
             event_representations, forward_flow, forward_flow_valid2D, imgs_list = self.augmentor(event_representations, forward_flow, forward_flow_valid2D, imgs_list)
 
         output = {
-            DataLoading.FLOW: forward_flow,
-            DataLoading.FLOW_VALID: forward_flow_valid2D,
+            DataLoading.SEQ_NAME: self.seq_path.name,
             DataLoading.FILE_INDEX: flow_file_index,
             # For now returns: 2 x bins x height x width or (2*bins-1) x height x width
             DataLoading.EV_REPR: event_representations,
             DataLoading.DATASET_TYPE: DataSetType.DSEC,
         }
+        if self.mode == 'train':
+            output.update({DataLoading.FLOW: forward_flow})
+            output.update({DataLoading.FLOW_VALID: forward_flow_valid2D,})
         if imgs_list is not None:
             output.update({DataLoading.IMG: imgs_list})
 

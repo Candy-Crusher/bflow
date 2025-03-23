@@ -4,6 +4,7 @@ from typing import Union
 import cv2
 import h5py
 import numpy as np
+import imageio
 
 
 def _flow_16bit_to_float(flow_16bit: np.ndarray):
@@ -27,7 +28,8 @@ def load_flow(flowfile: Path):
     assert flowfile.exists()
     assert flowfile.suffix == '.png'
     # flow_16bit = np.array(Image.open(str(flowfile)))
-    flow_16bit = cv2.imread(str(flowfile), cv2.IMREAD_ANYDEPTH | cv2.IMREAD_ANYCOLOR)
+    # flow_16bit = cv2.imread(str(flowfile), cv2.IMREAD_ANYDEPTH | cv2.IMREAD_ANYCOLOR)
+    flow_16bit = imageio.imread(str(flowfile), format='PNG-FI')
     flow, valid2D = _flow_16bit_to_float(flow_16bit)
     return flow, valid2D
 

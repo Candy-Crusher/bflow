@@ -14,3 +14,4 @@ class DataLoading(Enum):
     IMG = auto()
     IMG_TIMESTAMPS = auto()
     DATASET_TYPE = auto()
+    SEQ_NAME = auto()

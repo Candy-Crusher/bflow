@@ -35,8 +35,10 @@ class DatasetProvider(DatasetProviderBase):
         base_args.update({'merge_grids': True})
         train_args = copy.deepcopy(base_args)
         train_args.update({'data_augm': True})
+        train_args.update({'mode': 'train'})
         test_args = copy.deepcopy(base_args)
         test_args.update({'data_augm': False})
+        test_args.update({'mode': 'test'})
 
         train_sequences = list()
         for child in train_path.iterdir():
@@ -45,15 +47,17 @@ class DatasetProvider(DatasetProviderBase):
                 train_sequences.append(sequence)
 
         self.train_dataset = torch.utils.data.ConcatDataset(train_sequences)
+        # self.train_dataset = None
 
         # TODO: write specialized test sequence
-        #test_sequences = list()
-        #for child in test_path.iterdir():
+        test_sequences = list()
+        for child in test_path.iterdir():
+           sequence = generate_sequence(child, subseq_class, test_args)
         #    sequence = generate_test_sequence(child, subseq_class, test_args)
-        #    if sequence is not None:
-        #        test_sequences.append(sequence)
-        #self.test_dataset = torch.utils.data.ConcatDataset(test_sequences)
-        self.test_dataset = None
+           if sequence is not None:
+               test_sequences.append(sequence)
+        self.test_dataset = torch.utils.data.ConcatDataset(test_sequences)
+        # self.test_dataset = None
 
     def get_train_dataset(self):
         return self.train_dataset

@@ -49,8 +49,10 @@ class DataModule(pl.LightningDataModule):
             raise NotImplementedError
         self.train_dataset = dataset_provider.get_train_dataset()
         if dataset_type == self.DSEC_STR:
-            self.val_dataset = None
-            self.test_dataset = dataset_provider.get_test_dataset()
+            self.val_dataset = dataset_provider.get_test_dataset()
+            # self.val_dataset = None
+            self.test_dataset = None
+            # self.test_dataset = dataset_provider.get_test_dataset()
         else:
             self.val_dataset = dataset_provider.get_val_dataset()
             self.test_dataset = None

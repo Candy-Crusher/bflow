@@ -49,7 +49,7 @@ def main(cfg: DictConfig):
         ddp_active = True
         per_gpu_batch_size = batch_size // num_gpus
         assert_info = 'Batch size ({}) must be divisible by number of gpus ({})'.format(batch_size, num_gpus)
-        assert batch_size * num_gpus == per_gpu_batch_size, assert_info
+        assert per_gpu_batch_size * num_gpus == batch_size, f'{batch_size}, {num_gpus}, {per_gpu_batch_size}, {assert_info}'
 
     limit_train_batches = float(config['training']['limit_train_batches'])
     if limit_train_batches > 1.0:
