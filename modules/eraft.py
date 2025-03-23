@@ -6,7 +6,8 @@ from omegaconf import DictConfig
 from torchmetrics import MetricCollection
 
 from data.utils.keys import DataLoading, DataSetType
-from models.raft_spline.raft import RAFTSpline, BezierCurves
+from models.eraft.eraft import ERAFT
+# from models.raft_spline.raft import RAFTSpline, BezierCurves
 from modules.utils import detach_tensors, reduce_ev_repr, InputPadder
 from utils.general import to_cpu
 from utils.losses import l1_seq_loss_channel_masked, l1_multi_seq_loss_channel_masked
@@ -16,7 +17,7 @@ import numpy
 import os
 import imageio
 
-class RAFTSplineModule(pl.LightningModule):
+class ERAFTModule(pl.LightningModule):
     def __init__(self, config: Union[Dict[str, Any], DictConfig]):
         super().__init__()
 
@@ -24,7 +25,9 @@ class RAFTSplineModule(pl.LightningModule):
         self.num_iter_test = config['model']['num_iter']['test']
 
         self._input_padder = InputPadder(min_size=8, no_top_padding=False)
-        self.net = RAFTSpline(config['model'])
+        self.net = ERAFT(
+            n_first_channels=5
+        )
 
         self.use_images = config['model']['use_boundary_images']
         self.use_events = config['model']['use_events']
@@ -57,8 +60,10 @@ class RAFTSplineModule(pl.LightningModule):
         self.val_epe_multi_lin = EPE_MULTI()
         self.val_ae_multi_lin = AE_MULTI(degrees=True)
 
-    def forward(self, voxel_grid, images, iters, test_mode: bool):
-        return self.net(voxel_grid=voxel_grid, images=images, iters=iters, test_mode=test_mode)
+    # def forward(self, voxel_grid, images, iters, test_mode: bool):
+    #     return self.net(voxel_grid=voxel_grid, images=images, iters=iters, test_mode=test_mode)
+    def forward(self, image1, image2, iters=12, flow_init=None, upsample=True):
+        return self.net(image1=image1, image2=image2, iters=iters, flow_init=flow_init, upsample=upsample)
 
     '''
     We detach here (without moving to cpu) because PL is throwing a deprecated warning that this should be done for version >= 1.6.
@@ -96,14 +101,10 @@ class RAFTSplineModule(pl.LightningModule):
             ev_repr_previous = ev_repr[:, 0:num_bins, ...]
             ev_repr_current = ev_repr[:, -num_bins:, ...]
 
-            # bezier_up_predictions: list(BezierQuadratic, ...), float32 or float16
-            bezier_up_predictions: List[BezierCurves] = self(
-                voxel_grid=ev_repr if self.use_events else None,
-                images=images,
-                iters=self.num_iter_train,
-                test_mode=False)
+            _, forward_flow_preds = self(image1=ev_repr_previous,
+                                        image2=ev_repr_current,
+                                            flow_init=None)
             # forward_flow_preds: list((N, 2, 480, 640), ...), float32 or float16
-            forward_flow_preds = [x.get_flow_from_reference(1.0) for x in bezier_up_predictions]
             l1_seq_loss = l1_seq_loss_channel_masked(forward_flow_preds, forward_flow_gt, forward_flow_gt_valid)
 
             self.log('train/l1_seq_loss', l1_seq_loss, logger=True, on_epoch=True)
@@ -178,7 +179,7 @@ class RAFTSplineModule(pl.LightningModule):
             raise NotImplementedError
 
         output.update({
-            'bezier_prediction': bezier_up_predictions[-1].detach(),
+            'bezier_prediction': forward_flow_preds[-1].detach(),
         })
         if self.use_events:
             output.update({

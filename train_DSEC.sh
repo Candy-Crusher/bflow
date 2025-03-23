@@ -10,7 +10,10 @@ MDL_CFG=E_LU4_BD2_lowpyramid
 # Set LOG_ONLY_NUMBERS=true to avoid logging images (can require a lot of space). Set to false by default.
 LOG_ONLY_NUMBERS=true
 
+# GPU_ID=[1]
 GPU_ID=[0,1,3]
-python train.py model=raft-spline dataset=dsec dataset.path=${DATA_DIR} wandb.group_name=dsec \
+# MODEL=raft-spline
+MODEL=eraft
+python train.py model=${MODEL} dataset=dsec dataset.path=${DATA_DIR} wandb.group_name=dsec \
 hardware.gpus=${GPU_ID} hardware.num_workers=6 +experiment/dsec/raft_spline=${MDL_CFG} \
 logging.only_numbers=${LOG_ONLY_NUMBERS}

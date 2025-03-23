@@ -234,7 +234,7 @@ class CorrComputation:
         # case: many to many
         return self._corr_dot_prod_M_to_N()
 
-    def _corr_dot_prod_1_to_N(self) -> CorrData:
+    def _corr_dot_prod_1_to_N(self) -> CorrData:    # TODO: can use event to optimize
         # 1 to 1 if num_targets_sum is 1, which is a special case of this code.
         assert len(self._fmap1) == 1
         assert len(self._fmap2) == 1
@@ -303,6 +303,7 @@ class CorrBlockParallelMultiTarget:
             target_idx_list = [idx for idx, val in enumerate(num_levels_per_target) if val >= num_levels]
             corr_data = self._corr_pyramid[-1].get_downsampled(target_indices=target_idx_list)
             self._corr_pyramid.append(corr_data)
+        # [4, 6912, 1, 36, 48], [1, 6912, 1, 18, 24], [1, 6912, 1, 9, 12], [1, 6912, 1, 4, 6]
 
     def __call__(self, coords: Union[th.Tensor, List[th.Tensor], Tuple[th.Tensor]]) -> th.Tensor:
         if isinstance(coords, list) or isinstance(coords, tuple):

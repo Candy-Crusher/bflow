@@ -21,6 +21,7 @@ from utils.general import get_ckpt_callback
 from loggers.wandb_logger import WandbLogger
 from modules.data_loading import DataModule
 from modules.raft_spline import RAFTSplineModule
+from modules.eraft import ERAFTModule
 
 
 @hydra.main(config_path='config', config_name='train', version_base='1.3')
@@ -123,13 +124,16 @@ def main(cfg: DictConfig):
     # ------------
     # Model
     # ------------
-
-    if resume_path is not None and wandb_config['resume_only_weights']:
-        print('Resuming only the weights instead of the full training state')
-        net = RAFTSplineModule.load_from_checkpoint(str(resume_path), **{"config": config})
-        resume_path = None
-    else:
-        net = RAFTSplineModule(config)
+    if config['model']['name'] == 'raft-spline':
+        if resume_path is not None and wandb_config['resume_only_weights']:
+            print('Resuming only the weights instead of the full training state')
+            net = RAFTSplineModule.load_from_checkpoint(str(resume_path), **{"config": config})
+            resume_path = None
+        else:
+            net = RAFTSplineModule(config)
+    elif config['model']['name'] == 'eraft':
+        net = ERAFTModule(config)
+    print("Model created", config['model']['name'])
 
     # ------------
     # Training
